@@ -9,6 +9,8 @@ class ApiError(Exception):
 
 
 def validate_email(func):
+    """Validate email address"""
+
     def wrapper(self, *args, **kwargs):
         email = kwargs.get("email", args[0])
         if not re.match(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)", email):
@@ -19,6 +21,8 @@ def validate_email(func):
 
 
 def check_response(func):
+    """Check response for errors"""
+
     def wrapper(*args, **kwargs):
         response = func(*args, **kwargs)
         if response.json().get("error"):
