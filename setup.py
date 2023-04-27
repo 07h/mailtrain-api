@@ -6,5 +6,7 @@ setup(
     packages=find_packages(),
     test_suite="tests",
     include_package_data=True,
-    install_requires=[],
+    install_requires=[
+        "requests",
+    ],
 )
