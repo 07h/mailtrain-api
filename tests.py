@@ -70,3 +70,7 @@ class TestMailtrain(unittest.TestCase):
     def test_send_email_by_template(self):
         email = self.mt.send_email_by_template(TEST_EMAIL)
         self.assertIsInstance(email, dict)
+
+    def test_delete_from_all_lists(self):
+        subscriber = self.mt.delete_from_all_lists(TEST_EMAIL)
+        self.assertIsInstance(subscriber, True)

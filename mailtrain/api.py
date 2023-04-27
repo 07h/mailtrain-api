@@ -129,6 +129,17 @@ class Mailtrain:
         return requests.post(url, data=data)
 
     @validate_email
+    def unsubscribe_from_all_lists(self, email: str) -> None:
+        """Unsubscribe a subscriber from all lists
+
+        :param email: The email address
+        """
+        for list_id in self.get_lists(email):
+            self.unsubscribe(email, list_id["cid"])
+
+        return True
+
+    @validate_email
     @check_response
     def delete_subscription(self, email: str, list_id: str) -> dict:
         """Delete a subscriber from a list
@@ -142,6 +153,17 @@ class Mailtrain:
         )
         data = {"EMAIL": email}
         return requests.post(url, data=data)
+
+    @validate_email
+    def delete_from_all_lists(self, email: str) -> None:
+        """Delete a subscriber from all lists
+
+        :param email: The email address
+        """
+        for list_id in self.get_lists(email):
+            self.delete_subscription(email, list_id["cid"])
+
+        return True
 
     @check_response
     def create_custom_field(
