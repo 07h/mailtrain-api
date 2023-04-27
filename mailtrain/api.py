@@ -37,7 +37,7 @@ class Mailtrain:
     def __init__(self, api_token: str, api_url: str):
         """Mailtrain API class
         :param api_token: The API token
-        :param api_url: The API url like https://mailtrain.example.com or https://example
+        :param api_url: The API url like https://mailtrain.example.com or https://example.com
         """
         self.api_token = api_token
         self.api_url = api_url[:-1] if api_url.endswith("/") else api_url
