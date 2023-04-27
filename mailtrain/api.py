@@ -349,8 +349,8 @@ class Mailtrain:
     ) -> dict:
         """Send single email by template with given templateId
 
-        :param template_id: The template id
         :param email: The email address
+        :param template_id: The template id
         :param tags: Map of template variables to replace
         :send_configuration_id: ID of configuration used to create mailer instance. If omitted, the default system send configuration is used.
         :subject: Subject of the email
