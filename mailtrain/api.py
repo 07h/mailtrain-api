@@ -51,8 +51,8 @@ class Mailtrain:
         :param email: The email address
         :param first_name: The first name
         :param last_name: The last name
-        :param timezone: The timezone
-        :param merge_tag_value: The merge tag value
+        :param timezone: subscriber's timezone (eg. "Europe/Tallinn", "PST" or "UTC"). If not set defaults to "UTC"
+        :param merge_tag_value: custom field value. Use yes/no for option group values (checkboxes, radios, drop downs)
         :param force_subscribe: Force subscribe
         :param require_confirmation: Require confirmation
         :return: A dict of the subscriber
@@ -117,7 +117,15 @@ class Mailtrain:
         response.raise_for_status()
         return response.json()
 
-    def create_custom_field(self, list_id: str, name: str, type: str) -> dict:
+    def create_custom_field(
+        self,
+        list_id: str,
+        name: str,
+        type: str,
+        group_template: str = "",
+        group: str = "",
+        visible: bool = True,
+    ) -> dict:
         """Create a custom field for a list
 
         :param list_id: The list id
@@ -137,6 +145,9 @@ class Mailtrain:
             birthday-eur – Birthday (DD/MM)
             json – JSON value for custom rendering
             option – Option
+        :param group - If the type is 'option' then you also need to specify the parent element ID
+        :param group_template – Template for the group element. If not set, then values of the elements are joined with commas
+        :param visible – if not visible then the subscriber can not view or modify this value at the profile page
         :return: A dict of the custom field
         """
         # check if type is valid
@@ -159,8 +170,17 @@ class Mailtrain:
         if type not in valid_types:
             raise ValueError("Invalid type. Valid types are: " + ", ".join(valid_types))
 
+        if type == "option" and group == "":
+            raise ValueError("You must specify the parent element ID for type 'option'")
+
         url = self.api_url + "/api/field/" + list_id + "?access_token=" + self.api_token
-        data = {"NAME": name, "TYPE": type}
+        data = {
+            "NAME": name,
+            "TYPE": type,
+            "GROUP": group,
+            "GROUP_TEMPLATE": group_template,
+            "VISIBLE": "yes" if visible else "no",
+        }
         response = requests.post(url, data=data)
         response.raise_for_status()
         return response.json()
