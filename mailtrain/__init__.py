@@ -1,1 +1,1 @@
-from .api import Mailtrain
+from .api import Mailtrain, ApiError
