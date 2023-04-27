@@ -20,15 +20,15 @@ class TestMailtrain(unittest.TestCase):
         self.assertIsInstance(subscribers, list)
 
     def test_add_subscription(self):
-        subscriber = self.mt.add_subscription(LIST_ID, TEST_EMAIL)
+        subscriber = self.mt.add_subscription(TEST_EMAIL, LIST_ID)
         self.assertIsInstance(subscriber, dict)
 
     def test_unsubscribe(self):
-        subscriber = self.mt.unsubscribe(LIST_ID, TEST_EMAIL)
+        subscriber = self.mt.unsubscribe(TEST_EMAIL, LIST_ID)
         self.assertIsInstance(subscriber, dict)
 
     def test_delete_subscription(self):
-        subscriber = self.mt.delete_subscription(LIST_ID, TEST_EMAIL)
+        subscriber = self.mt.delete_subscription(TEST_EMAIL, LIST_ID)
         self.assertIsInstance(subscriber, dict)
 
     def test_create_custom_field(self):

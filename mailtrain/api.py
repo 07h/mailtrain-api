@@ -2,6 +2,33 @@ import re
 import requests
 
 
+class ApiError(Exception):
+    """Error class for API errors"""
+
+    pass
+
+
+def validate_email(func):
+    def wrapper(self, *args, **kwargs):
+        email = kwargs.get("email", args[0])
+        if not re.match(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)", email):
+            raise ValueError("Invalid email address")
+        return func(self, *args, **kwargs)
+
+    return wrapper
+
+
+def check_response(func):
+    def wrapper(*args, **kwargs):
+        response = func(*args, **kwargs)
+        if response.json().get("error"):
+            raise ApiError(response.json()["error"])
+        response.raise_for_status()
+        return response.json()["data"]
+
+    return wrapper
+
+
 class Mailtrain:
     def __init__(self, api_token: str, api_url: str):
         """Mailtrain API class
@@ -11,6 +38,7 @@ class Mailtrain:
         self.api_token = api_token
         self.api_url = api_url[:-1] if api_url.endswith("/") else api_url
 
+    @check_response
     def get_subscribers(self, list_id: str, start: int = 0, limit: int = 10000) -> dict:
         """Get subscribers from a list
 
@@ -30,14 +58,14 @@ class Mailtrain:
             + "&limit="
             + str(limit)
         )
-        response = requests.get(url)
-        response.raise_for_status()
-        return response.json()
+        return requests.get(url)
 
+    @validate_email
+    @check_response
     def add_subscription(
         self,
-        list_id: str,
         email: str,
+        list_id: str,
         first_name: str = "",
         last_name: str = "",
         timezone: str = "UTC",
@@ -47,8 +75,8 @@ class Mailtrain:
     ) -> dict:
         """Add a subscriber to a list
 
-        :param list_id: The list id
         :param email: The email address
+        :param list_id: The list id
         :param first_name: The first name
         :param last_name: The last name
         :param timezone: subscriber's timezone (eg. "Europe/Tallinn", "PST" or "UTC"). If not set defaults to "UTC"
@@ -75,19 +103,17 @@ class Mailtrain:
             data["FORCE_SUBSCRIBE"] = "yes"
         if require_confirmation:
             data["REQUIRE_CONFIRMATION"] = "yes"
-        response = requests.post(url, data=data)
-        response.raise_for_status()
-        return response.json()
+        return requests.post(url, data=data)
 
-    def unsubscribe(self, list_id: str, email: str) -> dict:
+    @validate_email
+    @check_response
+    def unsubscribe(self, email: str, list_id: str) -> dict:
         """Unsubscribe a subscriber from a list
 
-        :param list_id: The list id
         :param email: The email address
+        :param list_id: The list id
         :return: A dict of the subscriber
         """
-        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-            raise ValueError("Invalid email address")
         url = (
             self.api_url
             + "/api/unsubscribe/"
@@ -96,27 +122,24 @@ class Mailtrain:
             + self.api_token
         )
         data = {"EMAIL": email}
-        response = requests.post(url, data=data)
-        response.raise_for_status()
-        return response.json()
+        return requests.post(url, data=data)
 
-    def delete_subscription(self, list_id: str, email: str) -> dict:
+    @validate_email
+    @check_response
+    def delete_subscription(self, email: str, list_id: str) -> dict:
         """Delete a subscriber from a list
 
-        :param list_id: The list id
         :param email: The email address
-        :return: A dict of the subscriber like {"EMAIL": "
+        :param list_id: The list id
+        :return: A dict of the subscriber
         """
-        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-            raise ValueError("Invalid email address")
         url = (
             self.api_url + "/api/delete/" + list_id + "?access_token=" + self.api_token
         )
         data = {"EMAIL": email}
-        response = requests.post(url, data=data)
-        response.raise_for_status()
-        return response.json()
+        return requests.post(url, data=data)
 
+    @check_response
     def create_custom_field(
         self,
         list_id: str,
@@ -181,10 +204,9 @@ class Mailtrain:
             "GROUP_TEMPLATE": group_template,
             "VISIBLE": "yes" if visible else "no",
         }
-        response = requests.post(url, data=data)
-        response.raise_for_status()
-        return response.json()
+        return requests.post(url, data=data)
 
+    @check_response
     def get_blacklist(
         self, start: int = 0, limit: int = 10000, search: str = ""
     ) -> dict:
@@ -206,54 +228,45 @@ class Mailtrain:
             + "&search="
             + search
         )
-        response = requests.get(url)
-        response.raise_for_status()
-        return response.json()
+        return requests.get(url)
 
+    @validate_email
+    @check_response
     def add_to_blacklist(self, email: str) -> dict:
         """Add email to blacklist
 
         :param email: The email address
         :return: A dict of the blacklisted email
         """
-        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-            raise ValueError("Invalid email address")
-
         url = self.api_url + "/api/blacklist/add?access_token=" + self.api_token
         data = {"EMAIL": email}
-        response = requests.post(url, data=data)
-        response.raise_for_status()
-        return response.json()
+        return requests.post(url, data=data)
 
+    @validate_email
+    @check_response
     def delete_from_blacklist(self, email: str) -> dict:
         """Delete email from blacklist
 
         :param email: The email address
         :return: A dict of the blacklisted email
         """
-        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-            raise ValueError("Invalid email address")
 
         url = self.api_url + "/api/blacklist/delete?access_token=" + self.api_token
         data = {"EMAIL": email}
-        response = requests.post(url, data=data)
-        response.raise_for_status()
-        return response.json()
+        return requests.post(url, data=data)
 
+    @validate_email
+    @check_response
     def get_lists(self, email: str) -> dict:
         """Retrieve the lists that the user with :email has subscribed to.
 
         :param email: The email address
         :return: A dict of the lists
         """
-        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-            raise ValueError("Invalid email address")
-
         url = self.api_url + "/api/lists/" + email + "?access_token=" + self.api_token
-        response = requests.get(url)
-        response.raise_for_status()
-        return response.json()
+        return requests.get(url)
 
+    @check_response
     def get_lists_by_namespace(self, namespace_id: str) -> dict:
         """Retrieve the lists that the namespace with :namespace_id has.
 
@@ -267,10 +280,9 @@ class Mailtrain:
             + "?access_token="
             + self.api_token
         )
-        response = requests.get(url)
-        response.raise_for_status()
-        return response.json()
+        return requests.get(url)
 
+    @check_response
     def create_list(
         self,
         namespace: str,
@@ -326,10 +338,9 @@ class Mailtrain:
             "PUBLIC_SUBSCRIBE": int(public_subscribe),
             "LISTUNSUBSCRIBE_DISABLED": int(listunsubscribe_disabled),
         }
-        response = requests.post(url, data=data)
-        response.raise_for_status()
-        return response.json()
+        return requests.post(url, data=data)
 
+    @check_response
     def delete_list(self, list_id: str) -> dict:
         """Delete a list of subscribers.
 
@@ -337,10 +348,9 @@ class Mailtrain:
         :return: A dict of the deleted list
         """
         url = self.api_url + "/api/list/" + list_id + "?access_token=" + self.api_token
-        response = requests.delete(url)
-        response.raise_for_status()
-        return response.json()
+        return requests.delete(url)
 
+    @check_response
     def fetch_rss(self, campaign_cid: str) -> dict:
         """Forces the RSS feed check to immediately check the campaign with the given CID (in :campaign_cid). It works only for RSS campaigns.
 
@@ -354,10 +364,10 @@ class Mailtrain:
             + "?access_token="
             + self.api_token
         )
-        response = requests.get(url)
-        response.raise_for_status()
-        return response.json()
+        return requests.get(url)
 
+    @validate_email
+    @check_response
     def send_email_by_template(
         self,
         email: str,
@@ -391,6 +401,4 @@ class Mailtrain:
             "SUBJECT": subject,
             "ATTACHMENTS": attachments,
         }
-        response = requests.post(url, data=data)
-        response.raise_for_status()
-        return response.json()
+        return requests.post(url, data=data)
