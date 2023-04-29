@@ -72,7 +72,7 @@ class Mailtrain:
         list_id: str,
         first_name: str = "",
         last_name: str = "",
-        timezone: str = "UTC",
+        timezone: str = "",
         force_subscribe: bool = True,
         require_confirmation: bool = False,
         **kwargs
