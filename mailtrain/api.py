@@ -77,7 +77,7 @@ class Mailtrain:
         require_confirmation: bool = False,
         **kwargs
     ) -> dict:
-        """Add a subscriber to a list
+        """Add or update a subscriber to a list
 
         :param email: The email address
         :param list_id: The list id
@@ -98,16 +98,22 @@ class Mailtrain:
         )
         data = {
             "EMAIL": email,
-            "MERGE_FIRST_NAME": first_name,
-            "MERGE_LAST_NAME": last_name,
-            "TIMEZONE": timezone,
             **kwargs,
         }
+        if first_name:
+            data["MERGE_FIRST_NAME"] = first_name
+        if last_name:
+            data["MERGE_LAST_NAME"] = last_name
+        if timezone:
+            data["TIMEZONE"] = timezone
         if force_subscribe:
             data["FORCE_SUBSCRIBE"] = "yes"
         if require_confirmation:
             data["REQUIRE_CONFIRMATION"] = "yes"
         return requests.post(url, data=data)
+
+    # Alias for add_subscription
+    update_subscription = add_subscription
 
     @validate_email
     @check_response
