@@ -73,9 +73,9 @@ class Mailtrain:
         first_name: str = "",
         last_name: str = "",
         timezone: str = "UTC",
-        merge_tag_value: str = "",
-        force_subscribe: bool = False,
+        force_subscribe: bool = True,
         require_confirmation: bool = False,
+        **kwargs
     ) -> dict:
         """Add a subscriber to a list
 
@@ -84,9 +84,9 @@ class Mailtrain:
         :param first_name: The first name
         :param last_name: The last name
         :param timezone: subscriber's timezone (eg. "Europe/Tallinn", "PST" or "UTC"). If not set defaults to "UTC"
-        :param merge_tag_value: custom field value. Use yes/no for option group values (checkboxes, radios, drop downs)
         :param force_subscribe: Force subscribe
         :param require_confirmation: Require confirmation
+        :param kwargs: custom fields values like MERGE_*. Use yes/no for option group values (checkboxes, radios, drop downs)
         :return: A dict of the subscriber
         """
         url = (
@@ -98,10 +98,10 @@ class Mailtrain:
         )
         data = {
             "EMAIL": email,
-            "FIRST_NAME": first_name,
-            "LAST_NAME": last_name,
+            "MERGE_FIRST_NAME": first_name,
+            "MERGE_LAST_NAME": last_name,
             "TIMEZONE": timezone,
-            "MERGE_TAG_VALUE": merge_tag_value,
+            **kwargs,
         }
         if force_subscribe:
             data["FORCE_SUBSCRIBE"] = "yes"
