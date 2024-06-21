@@ -14,7 +14,7 @@ all_lists_of_email = mt.get_lists("test@test.com")
 
 all_subsribers = mt.get_subscribers("LIST_ID")
 
-mt.add_subscriber("test@test.com", "LIST_ID", "Test", "Testovich")
+mt.add_subscription("test@test.com", "LIST_ID", "Test", "Testovich")
 
 ```
 
