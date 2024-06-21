@@ -75,7 +75,7 @@ class Mailtrain:
         timezone: str = "",
         force_subscribe: bool = True,
         require_confirmation: bool = False,
-        **kwargs
+        **kwargs,
     ) -> dict:
         """Add or update a subscriber to a list
 
@@ -428,9 +428,9 @@ class Mailtrain:
         )
         data = {
             "EMAIL": email,
-            "TAGS": tags,
             "SEND_CONFIGURATION_ID": send_configuration_id,
             "SUBJECT": subject,
-            "ATTACHMENTS": attachments,
         }
+        for key, value in tags.items():
+            data[f"TAGS[{key}]"] = value
         return requests.post(url, data=data)
