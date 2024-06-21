@@ -28,7 +28,7 @@ def check_response(func):
         if response.json().get("error"):
             raise ApiError(response.json()["error"])
         response.raise_for_status()
-        return response.json()["data"]
+        return response.json().get("data")
 
     return wrapper
 
@@ -422,7 +422,7 @@ class Mailtrain:
         url = (
             self.api_url
             + "/api/templates/"
-            + template_id
+            + str(template_id)
             + "/send?access_token="
             + self.api_token
         )
