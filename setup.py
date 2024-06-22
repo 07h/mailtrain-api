@@ -7,6 +7,6 @@ setup(
     test_suite="tests",
     include_package_data=True,
     install_requires=[
-        "requests",
+        "httpx",
     ],
 )

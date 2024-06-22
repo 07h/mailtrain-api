@@ -1,5 +1,6 @@
 import re
-import requests
+import httpx
+import asyncio
 
 
 class ApiError(Exception):
@@ -23,8 +24,8 @@ def validate_email(func):
 def check_response(func):
     """Check response for errors"""
 
-    def wrapper(*args, **kwargs):
-        response = func(*args, **kwargs)
+    async def wrapper(*args, **kwargs):
+        response = await func(*args, **kwargs)
         if response.json().get("error"):
             raise ApiError(response.json()["error"])
         response.raise_for_status()
@@ -41,9 +42,12 @@ class Mailtrain:
         """
         self.api_token = api_token
         self.api_url = api_url[:-1] if api_url.endswith("/") else api_url
+        self.client = httpx.AsyncClient()
 
     @check_response
-    def get_subscribers(self, list_id: str, start: int = 0, limit: int = 10000) -> dict:
+    async def get_subscribers(
+        self, list_id: str, start: int = 0, limit: int = 10000
+    ) -> dict:
         """Get subscribers from a list
 
         :param list_id: The list id
@@ -62,11 +66,11 @@ class Mailtrain:
             + "&limit="
             + str(limit)
         )
-        return requests.get(url)
+        return await self.client.get(url)
 
     @validate_email
     @check_response
-    def add_subscription(
+    async def add_subscription(
         self,
         email: str,
         list_id: str,
@@ -110,14 +114,14 @@ class Mailtrain:
             data["FORCE_SUBSCRIBE"] = "yes"
         if require_confirmation:
             data["REQUIRE_CONFIRMATION"] = "yes"
-        return requests.post(url, data=data)
+        return await self.client.post(url, data=data)
 
     # Alias for add_subscription
     update_subscription = add_subscription
 
     @validate_email
     @check_response
-    def unsubscribe(self, email: str, list_id: str) -> dict:
+    async def unsubscribe(self, email: str, list_id: str) -> dict:
         """Unsubscribe a subscriber from a list
 
         :param email: The email address
@@ -132,22 +136,22 @@ class Mailtrain:
             + self.api_token
         )
         data = {"EMAIL": email}
-        return requests.post(url, data=data)
+        return await self.client.post(url, data=data)
 
     @validate_email
-    def unsubscribe_from_all_lists(self, email: str) -> None:
+    async def unsubscribe_from_all_lists(self, email: str) -> None:
         """Unsubscribe a subscriber from all lists
 
         :param email: The email address
         """
-        for list_id in self.get_lists(email):
-            self.unsubscribe(email, list_id["cid"])
-
+        lists = await self.get_lists(email)
+        tasks = [self.unsubscribe(email, list_id["cid"]) for list_id in lists]
+        await asyncio.gather(*tasks)
         return True
 
     @validate_email
     @check_response
-    def delete_subscription(self, email: str, list_id: str) -> dict:
+    async def delete_subscription(self, email: str, list_id: str) -> dict:
         """Delete a subscriber from a list
 
         :param email: The email address
@@ -158,21 +162,21 @@ class Mailtrain:
             self.api_url + "/api/delete/" + list_id + "?access_token=" + self.api_token
         )
         data = {"EMAIL": email}
-        return requests.post(url, data=data)
+        return await self.client.post(url, data=data)
 
     @validate_email
-    def delete_from_all_lists(self, email: str) -> None:
+    async def delete_from_all_lists(self, email: str) -> None:
         """Delete a subscriber from all lists
 
         :param email: The email address
         """
-        for list_id in self.get_lists(email):
-            self.delete_subscription(email, list_id["cid"])
-
+        lists = await self.get_lists(email)
+        tasks = [self.delete_subscription(email, list_id["cid"]) for list_id in lists]
+        await asyncio.gather(*tasks)
         return True
 
     @check_response
-    def create_custom_field(
+    async def create_custom_field(
         self,
         list_id: str,
         name: str,
@@ -236,10 +240,10 @@ class Mailtrain:
             "GROUP_TEMPLATE": group_template,
             "VISIBLE": "yes" if visible else "no",
         }
-        return requests.post(url, data=data)
+        return await self.client.post(url, data=data)
 
     @check_response
-    def get_blacklist(
+    async def get_blacklist(
         self, start: int = 0, limit: int = 10000, search: str = ""
     ) -> dict:
         """Get blacklisted emails
@@ -260,11 +264,11 @@ class Mailtrain:
             + "&search="
             + search
         )
-        return requests.get(url)
+        return await self.client.get(url)
 
     @validate_email
     @check_response
-    def add_to_blacklist(self, email: str) -> dict:
+    async def add_to_blacklist(self, email: str) -> dict:
         """Add email to blacklist
 
         :param email: The email address
@@ -272,34 +276,33 @@ class Mailtrain:
         """
         url = self.api_url + "/api/blacklist/add?access_token=" + self.api_token
         data = {"EMAIL": email}
-        return requests.post(url, data=data)
+        return await self.client.post(url, data=data)
 
     @validate_email
     @check_response
-    def delete_from_blacklist(self, email: str) -> dict:
+    async def delete_from_blacklist(self, email: str) -> dict:
         """Delete email from blacklist
 
         :param email: The email address
         :return: A dict of the blacklisted email
         """
-
         url = self.api_url + "/api/blacklist/delete?access_token=" + self.api_token
         data = {"EMAIL": email}
-        return requests.post(url, data=data)
+        return await self.client.post(url, data=data)
 
     @validate_email
     @check_response
-    def get_lists(self, email: str) -> dict:
+    async def get_lists(self, email: str) -> dict:
         """Retrieve the lists that the user with :email has subscribed to.
 
         :param email: The email address
         :return: A dict of the lists
         """
         url = self.api_url + "/api/lists/" + email + "?access_token=" + self.api_token
-        return requests.get(url)
+        return await self.client.get(url)
 
     @check_response
-    def get_lists_by_namespace(self, namespace_id: str) -> dict:
+    async def get_lists_by_namespace(self, namespace_id: str) -> dict:
         """Retrieve the lists that the namespace with :namespace_id has.
 
         :param namespace_id: The namespace id
@@ -312,10 +315,10 @@ class Mailtrain:
             + "?access_token="
             + self.api_token
         )
-        return requests.get(url)
+        return await self.client.get(url)
 
     @check_response
-    def create_list(
+    async def create_list(
         self,
         namespace: str,
         unsubscription_mode: int,
@@ -370,20 +373,20 @@ class Mailtrain:
             "PUBLIC_SUBSCRIBE": int(public_subscribe),
             "LISTUNSUBSCRIBE_DISABLED": int(listunsubscribe_disabled),
         }
-        return requests.post(url, data=data)
+        return await self.client.post(url, data=data)
 
     @check_response
-    def delete_list(self, list_id: str) -> dict:
+    async def delete_list(self, list_id: str) -> dict:
         """Delete a list of subscribers.
 
         :param list_id: The list id
         :return: A dict of the deleted list
         """
         url = self.api_url + "/api/list/" + list_id + "?access_token=" + self.api_token
-        return requests.delete(url)
+        return await self.client.delete(url)
 
     @check_response
-    def fetch_rss(self, campaign_cid: str) -> dict:
+    async def fetch_rss(self, campaign_cid: str) -> dict:
         """Forces the RSS feed check to immediately check the campaign with the given CID (in :campaign_cid). It works only for RSS campaigns.
 
         :param campaign_cid: The campaign cid
@@ -396,11 +399,11 @@ class Mailtrain:
             + "?access_token="
             + self.api_token
         )
-        return requests.get(url)
+        return await self.client.get(url)
 
     @validate_email
     @check_response
-    def send_email_by_template(
+    async def send_email_by_template(
         self,
         email: str,
         template_id: int = 1,
@@ -433,4 +436,7 @@ class Mailtrain:
         }
         for key, value in tags.items():
             data[f"TAGS[{key}]"] = value
-        return requests.post(url, data=data)
+        return await self.client.post(url, data=data)
+
+    async def close(self):
+        await self.client.aclose()
