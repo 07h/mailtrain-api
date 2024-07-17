@@ -109,7 +109,7 @@ class Mailtrain:
         if last_name:
             data["MERGE_LAST_NAME"] = last_name
         if timezone:
-            data["TIMEZONE"] = timezone
+            data["TIMEZONE"] = timezone.lower()
         if force_subscribe:
             data["FORCE_SUBSCRIBE"] = "yes"
         if require_confirmation:
